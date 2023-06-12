@@ -74,6 +74,10 @@ SENSOR_TEMPERATURE_OUTDOOR = 276
 SENSOR_TEMPERATURE_SUPPLY = 221
 SENSOR_UNIT_AIRFLOW = 224
 SENSOR_UNIT_TEMPERATURE = 208
+SENSOR_GHE_TEMPERATURE_OUTDOOR = 416
+SENSOR_GHE_TEMPERATURE_GROUND = 417
+SENSOR_GHE_PUMP_STATE = 418
+SENSOR_GHE_PRESENT = 419
 
 UNIT_WATT = "W"
 UNIT_KWH = "kWh"
@@ -174,10 +178,10 @@ SENSORS: Dict[int, Sensor] = {
     400: Sensor("sensor_400", None, 400, TYPE_CN_INT16, lambda x: x / 10),
     401: Sensor("sensor_401", None, 401, TYPE_CN_UINT8),
     402: Sensor("sensor_402", None, 402, TYPE_CN_BOOL, bool),
-    416: Sensor("sensor_416", None, 416, TYPE_CN_INT16, lambda x: x / 10),
-    417: Sensor("sensor_417", None, 417, TYPE_CN_INT16, lambda x: x / 10),
-    418: Sensor("sensor_418", None, 418, TYPE_CN_UINT8),
-    419: Sensor("sensor_419", None, 419, TYPE_CN_BOOL, bool),
+    SENSOR_GHE_TEMPERATURE_OUTDOOR: Sensor("ComfoFond Outdoor Air Temperature", UNIT_CELCIUS, 416, TYPE_CN_INT16, lambda x: x / 10),
+    SENSOR_GHE_TEMPERATURE_GROUND: Sensor("ComfoFond Ground Temperature", UNIT_CELCIUS, 417, TYPE_CN_INT16, lambda x: x / 10),
+    SENSOR_GHE_PUMP_STATE: Sensor("ComfoFond Pump State", UNIT_PERCENT, 418, TYPE_CN_UINT8),
+    SENSOR_GHE_PRESENT: Sensor("ComfoFond GHE Present", None, 419, TYPE_CN_BOOL, bool),
     784: Sensor("sensor_784", None, 784, TYPE_CN_UINT8),
     785: Sensor("sensor_785", None, 785, TYPE_CN_BOOL),
     802: Sensor("sensor_802", None, 802, TYPE_CN_INT16, lambda x: x / 10),
