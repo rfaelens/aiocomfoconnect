@@ -17,6 +17,7 @@ from aiocomfoconnect.exceptions import (
     ComfoConnectNotAllowed,
 )
 from aiocomfoconnect.sensors import SENSORS
+from aiocomfoconnect.properties import Property
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,11 +33,17 @@ async def main(args):
     elif args.action == "set-speed":
         await run_set_speed(args.host, args.uuid, args.speed)
 
+    elif args.action == "set-mode":
+        await run_set_mode(args.host, args.uuid, args.mode)
+
     elif args.action == "show-sensors":
         await run_show_sensors(args.host, args.uuid)
 
     elif args.action == "show-sensor":
-        await run_show_sensor(args.host, args.uuid, args.sensor)
+        await run_show_sensor(args.host, args.uuid, args.sensor, args.follow)
+
+    elif args.action == "get-property":
+        await run_get_property(args.host, args.uuid, args.node_id, args.unit, args.subunit, args.property_id, args.property_type)
 
     else:
         raise Exception("Unknown action: " + args.action)
@@ -110,6 +117,26 @@ async def run_set_speed(host: str, uuid: str, speed: Literal["away", "low", "med
     await comfoconnect.disconnect()
 
 
+async def run_set_mode(host: str, uuid: str, mode: Literal["auto", "manual"]):
+    """Connect to a bridge."""
+    # Discover bridge so we know the UUID
+    bridges = await discover_bridges(host)
+    if not bridges:
+        raise Exception("No bridge found")
+
+    # Connect to the bridge
+    comfoconnect = ComfoConnect(bridges[0].host, bridges[0].uuid)
+    try:
+        await comfoconnect.connect(uuid)
+    except ComfoConnectNotAllowed:
+        print("Could not connect to bridge. Please register first.")
+        sys.exit(1)
+
+    await comfoconnect.set_mode(mode)
+
+    await comfoconnect.disconnect()
+
+
 async def run_show_sensors(host: str, uuid: str):
     """Connect to a bridge."""
     # Discover bridge so we know the UUID
@@ -163,7 +190,7 @@ async def run_show_sensors(host: str, uuid: str):
     await comfoconnect.disconnect()
 
 
-async def run_show_sensor(host: str, uuid: str, sensor: int):
+async def run_show_sensor(host: str, uuid: str, sensor: int, follow=False):
     """Connect to a bridge."""
     result = Future()
 
@@ -174,7 +201,9 @@ async def run_show_sensor(host: str, uuid: str, sensor: int):
 
     def sensor_callback(sensor_, value):
         """Print sensor update."""
-        result.set_result(value)
+        print(value)
+        if not result.done():
+            result.set_result(value)
 
     # Connect to the bridge
     comfoconnect = ComfoConnect(bridges[0].host, bridges[0].uuid, sensor_callback=sensor_callback)
@@ -192,9 +221,38 @@ async def run_show_sensor(host: str, uuid: str, sensor: int):
     await comfoconnect.register_sensor(SENSORS[sensor])
 
     # Wait for value
-    print(await result)
+    await result
+
+    # Follow for updates if requested
+    if follow:
+        try:
+            while True:
+                await asyncio.sleep(1)
+
+        except KeyboardInterrupt:
+            pass
 
     # Disconnect
+    await comfoconnect.disconnect()
+
+
+async def run_get_property(host: str, uuid: str, node_id: int, unit: int, subunit: int, property_id: int, property_type: int):
+    """Connect to a bridge."""
+    # Discover bridge so we know the UUID
+    bridges = await discover_bridges(host)
+    if not bridges:
+        raise Exception("No bridge found")
+
+    # Connect to the bridge
+    comfoconnect = ComfoConnect(bridges[0].host, bridges[0].uuid)
+    try:
+        await comfoconnect.connect(uuid)
+    except ComfoConnectNotAllowed:
+        print("Could not connect to bridge. Please register first.")
+        sys.exit(1)
+
+    print(await comfoconnect.get_property(Property(unit, subunit, property_id, property_type), node_id))
+
     await comfoconnect.disconnect()
 
 
@@ -217,12 +275,28 @@ if __name__ == "__main__":
     p_set_speed.add_argument("--host", help="Host address of the bridge")
     p_set_speed.add_argument("--uuid", help="UUID of this app", default=DEFAULT_UUID)
 
+    p_set_mode = subparsers.add_parser("set-mode", help="set operation mode")
+    p_set_mode.add_argument("mode", help="Operation mode", choices=["auto", "manual"])
+    p_set_mode.add_argument("--host", help="Host address of the bridge")
+    p_set_mode.add_argument("--uuid", help="UUID of this app", default=DEFAULT_UUID)
+
     p_sensors = subparsers.add_parser("show-sensors", help="show the sensor values")
     p_sensors.add_argument("--host", help="Host address of the bridge")
     p_sensors.add_argument("--uuid", help="UUID of this app", default=DEFAULT_UUID)
 
     p_sensor = subparsers.add_parser("show-sensor", help="show a single sensor value")
     p_sensor.add_argument("sensor", help="The ID of the sensor", type=int)
+    p_sensor.add_argument("--host", help="Host address of the bridge")
+    p_sensor.add_argument("--uuid", help="UUID of this app", default=DEFAULT_UUID)
+    p_sensor.add_argument("--follow", "-f", help="Follow", default=False, action="store_true")
+
+    p_sensor = subparsers.add_parser("get-property", help="show a property value")
+    p_sensor.add_argument("unit", help="The Unit of the property", type=int)
+    p_sensor.add_argument("subunit", help="The Subunit of the property", type=int)
+    p_sensor.add_argument("property_id", help="The id of the property", type=int)
+    p_sensor.add_argument("property_type", help="The type of the property", type=int, default=0x09)
+
+    p_sensor.add_argument("--node_id", help="The Node ID of the query", type=int, default=0x01)
     p_sensor.add_argument("--host", help="Host address of the bridge")
     p_sensor.add_argument("--uuid", help="UUID of this app", default=DEFAULT_UUID)
 

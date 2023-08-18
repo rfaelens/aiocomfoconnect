@@ -22,11 +22,15 @@ $ python -m aiocomfoconnect register --host 192.168.1.213
 
 $ python -m aiocomfoconnect set-speed away --host 192.168.1.213
 $ python -m aiocomfoconnect set-speed low --host 192.168.1.213
+$ python -m aiocomfoconnect set-mode auto --host 192.168.1.213
 $ python -m aiocomfoconnect set-speed medium --host 192.168.1.213
 $ python -m aiocomfoconnect set-speed high --host 192.168.1.213
 
 $ python -m aiocomfoconnect show-sensors --host 192.168.1.213
 $ python -m aiocomfoconnect show-sensor 276 --host 192.168.1.213
+$ python -m aiocomfoconnect show-sensor 276 --host 192.168.1.213 -f
+
+$ python -m aiocomfoconnect get-property --host 192.168.1.213 1 1 8 9  # Unit 0x01, SubUnit 0x01, Property 0x08, Type STRING. See PROTOCOL-RMI.md
 ```
 
 ## Available methods
@@ -140,12 +144,12 @@ if __name__ == "__main__":
 
 ### Decode network traffic
 
-You can use the `scripts/decode_pcap.py` file to decode network traffic between the Mobile App and the ComfoConnect LAN C. 
+You can use the `scripts/decode_pcap.py` file to decode network traffic between the Mobile App and the ComfoConnect LAN C.
 Make sure that the first TCP session in the capture is the connection between the bridge and the app. It's therefore recommended to start the capture before you open the app.
 
 ```shell
 $ sudo tcpdump -i any -s 0 -w /tmp/capture.pcap tcp and port 56747
-$ python scripts/decode_pcap.py /tmp/capture.pcap
+$ python3 script/decode_pcap.py /tmp/capture.pcap
 ```
 
 ### Generate zehnder_pb2.py file
